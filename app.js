@@ -1,72 +1,32 @@
 const express = require("express");
 const session = require("express-session");
 const passport = require("passport");
-const SamlStrategy = require("passport-saml").Strategy;
+const formRoute = require("./HTMLFormAuthRoute");
+const mfaRoute = require("./MFAAuthRoute");
 
 const app = express();
 
-// Configure session management
+passport.serializeUser((user, done) => done(null, user));
+passport.deserializeUser((user, done) => done(null, user));
+// Session configuration
 app.use(
   session({
-    secret: "secret", // Replace with a strong secret
+    secret: "very secret string", // Replace with a real secret in production
     resave: false,
     saveUninitialized: true,
+    cookie: {secure: false}, // For HTTPS: set to true
   })
 );
 
-// Initialize Passport
+// Initialize Passport and session handling for Passport
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Passport session setup
-passport.serializeUser((user, done) => {
-  done(null, user);
-});
+// Use routers
+app.use("/form", authRouter);
+app.use("/mfa", mfaRouter);
 
-passport.deserializeUser((user, done) => {
-  done(null, user);
-});
-
-// Configure the SAML strategy
-passport.use(
-  new SamlStrategy(
-    {
-      // SAML strategy options here
-      // Example:
-      entryPoint: "https://your-idp-entry-point/",
-      issuer: "your-app-entity-id",
-      callbackUrl: "http://localhost:3000/login/callback",
-    },
-    (profile, done) => {
-      // Here you can use the profile to associate with a user record in your database
-      return done(null, profile);
-    }
-  )
-);
-
-// Routes
-app.get("/", (req, res) => {
-  res.send("Home Page");
-});
-
-app.get(
-  "/login",
-  passport.authenticate("saml", {failureRedirect: "/", failureFlash: true}),
-  (req, res) => {
-    res.redirect("/");
-  }
-);
-
-app.post(
-  "/login/callback",
-  passport.authenticate("saml", {failureRedirect: "/", failureFlash: true}),
-  (req, res) => {
-    // Display the SAML assertion
-    res.send(`<pre>${JSON.stringify(req.user, null, 2)}</pre>`);
-  }
-);
-
-// Start the server
-app.listen(3000, () => {
-  console.log("Server started on http://localhost:3000");
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
 });
