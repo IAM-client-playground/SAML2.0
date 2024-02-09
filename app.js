@@ -26,6 +26,23 @@ app.use(passport.session());
 app.use("/form", authRouter);
 app.use("/mfa", mfaRouter);
 
+app.use(express.static("public"));
+
+app.get("/logout", (req, res) => {
+  req.logout();
+  // Additional logic to handle the SAML logout request
+  req.user = null;
+  samlStrategy.logout(req, (err, url) => {
+    if (err) {
+      // Handle logout error
+      res.status(500).send(err);
+    } else {
+      // Redirect to the IdP's logout URL
+      res.redirect(url);
+    }
+  });
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
