@@ -21,15 +21,24 @@ router.get(
     failureFlash: true,
   })
 );
-router.post(
-  "/login/callback",
-  passport.authenticate("samlStrategy1", {
-    failureRedirect: "/",
-    failureFlash: true,
-  }),
-  (req, res) => res.redirect("/user")
-);
+router.post("/login/callback", (req, res) => {
+  const assertionData = JSON.stringify(req.user, null, 2); // Format the user object for display
 
+  // Read the HTML file
+  const filePath = path.join(__dirname, "views", "assertionPage.html");
+  fs.readFile(filePath, "utf8", (err, data) => {
+    if (err) {
+      console.error("Error reading the file:", err);
+      return res.status(500).send("An error occurred");
+    }
+
+    // Replace the placeholder with actual assertion data
+    const result = data.replace("{{assertionData}}", assertionData);
+    result = result.replace("{{application}}", "SAML Application 1");
+    // Send the modified HTML to the client
+    res.send(result);
+  });
+});
 router.get("/logout", (req, res) => {
   req.logout();
   // Additional logic to handle the SAML logout request
